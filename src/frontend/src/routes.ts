@@ -2,6 +2,7 @@ import { flexibleRoomIdPattern } from '@/features/rooms'
 import { ComponentType, lazy, LazyExoticComponent } from 'react'
 
 const HomeRoute = lazy(() => import('@/features/home/routes/Home'))
+const LoginRoute = lazy(() => import('@/features/auth/routes/Login'))
 const RecordingDownloadRoute = lazy(
   () => import('@/features/recording/routes/RecordingDownload')
 )
@@ -25,6 +26,7 @@ const roomIdRegex = new RegExp(`^[/](?<roomId>${flexibleRoomIdPattern})$`)
 
 export const routes: Record<
   | 'home'
+  | 'login'
   | 'room'
   | 'feedback'
   | 'legalTerms'
@@ -45,6 +47,11 @@ export const routes: Record<
     name: 'home',
     path: '/',
     Component: HomeRoute,
+  },
+  login: {
+    name: 'login',
+    path: '/login',
+    Component: LoginRoute,
   },
   room: {
     name: 'room',

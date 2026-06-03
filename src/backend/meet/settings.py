@@ -281,6 +281,7 @@ class Base(Configuration):
         # Meet
         "core",
         "demo",
+        "local_auth",
         "drf_spectacular",
         # Third party apps
         "corsheaders",

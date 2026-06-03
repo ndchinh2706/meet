@@ -2,10 +2,14 @@ import { LinkButton } from '@/primitives'
 import { useTranslation } from 'react-i18next'
 import { useConfig } from '@/api/useConfig'
 import { ProConnectButton } from './ProConnectButton'
-import { authUrl } from '@/features/auth/utils/authUrl'
 
 type LoginButtonProps = {
   proConnectHint?: boolean // Hide hint in layouts where space doesn't allow it.
+}
+
+const localLoginUrl = () => {
+  if (typeof window === 'undefined') return '/login'
+  return `/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`
 }
 
 export const LoginButton = ({ proConnectHint = true }: LoginButtonProps) => {
@@ -17,7 +21,7 @@ export const LoginButton = ({ proConnectHint = true }: LoginButtonProps) => {
   }
 
   return (
-    <LinkButton href={authUrl()} data-attr="login" variant="primary">
+    <LinkButton href={localLoginUrl()} data-attr="login" variant="primary">
       {t('buttonLabel')}
     </LinkButton>
   )

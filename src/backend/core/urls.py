@@ -4,6 +4,7 @@ from django.conf import settings
 from django.urls import include, path
 
 from lasuite.oidc_login.urls import urlpatterns as oidc_urls
+from local_auth.urls import urlpatterns as local_auth_urls
 from rest_framework.routers import DefaultRouter, SimpleRouter
 
 from core.addons import viewsets as addons_viewsets
@@ -45,6 +46,7 @@ urlpatterns = [
             [
                 *router.urls,
                 *oidc_urls,
+                *local_auth_urls,
                 path("config/", get_frontend_configuration, name="config"),
             ]
         ),
