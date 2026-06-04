@@ -29,17 +29,30 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
 from core import models, utils
+from transcription import services as transcription_services
 
 logger = getLogger(__name__)
 
 MCP_PROTOCOL_VERSION = "2025-03-26"
 MCP_SERVER_NAME = "meet-mcp"
-MCP_SERVER_VERSION = "0.2.0"
+MCP_SERVER_VERSION = "0.3.0"
 
 TOOL_CREATE_MEETING_ROOM = "create_meeting_room"
 TOOL_ADD_AGENT_TO_MEETING = "add_agent_to_meeting"
+TOOL_LIST_MEETINGS = "list_meetings"
+TOOL_GET_MEETING_TRANSCRIPT = "get_meeting_transcript"
 
 DEFAULT_AGENT_NAME = getattr(settings, "MCP_DEFAULT_AGENT_NAME", "appota-bot")
+
+
+def _parse_iso(value):
+    """Lenient ISO-8601 parser. Returns None for empty input, raises on bad."""
+    if not value:
+        return None
+    from datetime import datetime  # local: keeps import cost off cold path
+
+    text = value.rstrip("Z")  # `fromisoformat` doesn't grok the trailing Z
+    return datetime.fromisoformat(text)
 
 TOOLS = [
     {
@@ -100,6 +113,67 @@ TOOLS = [
                     "description": (
                         "Chuỗi tùy ý truyền cho agent qua job.metadata "
                         "(ví dụ JSON config persona/instructions). Optional."
+                    ),
+                },
+            },
+        },
+    },
+    {
+        "name": TOOL_LIST_MEETINGS,
+        "description": (
+            "Liệt kê các cuộc họp gần đây mà user có quyền truy cập, kèm số "
+            "câu transcript đã ghi và thời điểm hoạt động cuối. Dùng khi "
+            "user hỏi 'cuộc họp nào đã ghi', 'meeting nào có transcript'."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20,
+                    "description": "Số phòng tối đa trả về (1-100).",
+                },
+                "since": {
+                    "type": "string",
+                    "description": (
+                        "ISO-8601 timestamp. Chỉ trả phòng có hoạt động "
+                        "transcript sau thời điểm này."
+                    ),
+                },
+            },
+        },
+    },
+    {
+        "name": TOOL_GET_MEETING_TRANSCRIPT,
+        "description": (
+            "Lấy toàn bộ transcript của một phòng họp theo thứ tự thời gian, "
+            "kèm tên người nói. Dùng khi user hỏi 'ai đã nói gì trong họp X', "
+            "'transcript phòng abc-def', hoặc muốn summarize cuộc họp."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "required": ["room"],
+            "properties": {
+                "room": {
+                    "type": "string",
+                    "description": "Slug hoặc UUID của phòng.",
+                },
+                "since": {
+                    "type": "string",
+                    "description": "ISO-8601 — chỉ lấy utterance từ thời điểm này.",
+                },
+                "until": {
+                    "type": "string",
+                    "description": "ISO-8601 — chỉ lấy utterance đến thời điểm này.",
+                },
+                "include_partial": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": (
+                        "true để lấy cả interim drafts (nhiễu nhưng realtime); "
+                        "false (mặc định) chỉ trả final."
                     ),
                 },
             },
@@ -292,6 +366,68 @@ def mcp_endpoint(request):
             )
             payload = _text_content(text)
             payload["structuredContent"] = result
+            return Response(_ok(req_id, payload))
+
+        if name == TOOL_LIST_MEETINGS:
+            try:
+                since = _parse_iso(args.get("since"))
+            except ValueError:
+                return Response(
+                    _err(req_id, -32602, "`since` must be ISO-8601.")
+                )
+            meetings = transcription_services.list_meetings(
+                request.user,
+                limit=int(args.get("limit") or 20),
+                since=since,
+            )
+            text_lines = [f"{len(meetings)} cuộc họp:"]
+            for m in meetings[:10]:
+                last = m["last_utterance_at"] or "—"
+                text_lines.append(
+                    f"  • {m['slug']} · {m['utterance_count']} câu · last: {last}"
+                )
+            payload = _text_content("\n".join(text_lines))
+            payload["structuredContent"] = {"meetings": meetings}
+            return Response(_ok(req_id, payload))
+
+        if name == TOOL_GET_MEETING_TRANSCRIPT:
+            room_ref = args.get("room") or ""
+            if not room_ref:
+                return Response(_err(req_id, -32602, "`room` is required."))
+            try:
+                since = _parse_iso(args.get("since"))
+                until = _parse_iso(args.get("until"))
+            except ValueError:
+                return Response(
+                    _err(req_id, -32602, "`since`/`until` must be ISO-8601.")
+                )
+
+            utterances = transcription_services.get_meeting_transcript(
+                request.user,
+                room_ref=room_ref,
+                since=since,
+                until=until,
+                include_partial=bool(args.get("include_partial")),
+            )
+            if utterances is None:
+                return Response(
+                    _err(
+                        req_id,
+                        -32000,
+                        f"Không tìm thấy phòng hoặc không có quyền: {room_ref!r}",
+                    )
+                )
+
+            text = (
+                f"{len(utterances)} utterance cho phòng {room_ref}."
+                if utterances
+                else f"Phòng {room_ref} chưa có transcript nào."
+            )
+            payload = _text_content(text)
+            payload["structuredContent"] = {
+                "room": room_ref,
+                "utterances": utterances,
+            }
             return Response(_ok(req_id, payload))
 
         return Response(_err(req_id, -32601, f"Unknown tool: {name}"))

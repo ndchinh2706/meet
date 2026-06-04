@@ -11,6 +11,7 @@ from core.addons import viewsets as addons_viewsets
 from core.api import get_frontend_configuration, viewsets
 from core.api.mcp import mcp_endpoint
 from core.external_api import viewsets as external_viewsets
+from transcription.api.urls import urlpatterns as transcription_urls
 
 # - Main endpoints
 router = DefaultRouter()
@@ -63,6 +64,7 @@ if settings.EXTERNAL_API_ENABLED:
             include(
                 [
                     *external_router.urls,
+                    *transcription_urls,
                 ]
             ),
         )
