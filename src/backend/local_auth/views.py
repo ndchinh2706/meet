@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.middleware.csrf import get_token
 from rest_framework import status
@@ -65,6 +67,7 @@ class SignupView(APIView):
             email=email,
             full_name=full_name,
             is_active=True,
+            sub=f"local_{uuid4()}",
         )
         user.set_password(password)
         user.save()

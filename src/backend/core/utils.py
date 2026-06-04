@@ -108,7 +108,11 @@ def generate_token(
         identity = participant_id or str(uuid4())
         default_username = "Anonymous"
     else:
-        identity = str(user.sub)
+        # `sub` is nullable on the User model (local-auth users created without
+        # OIDC have no sub). Falling back to `str(user.sub)` would yield the
+        # literal "None" for every local user, causing LiveKit to treat them as
+        # the same identity and disconnect prior sessions with DUPLICATE_IDENTITY.
+        identity = user.sub or f"user_{user.pk}"
         default_username = str(user)
 
     if color is None:
