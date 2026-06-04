@@ -282,6 +282,7 @@ class Base(Configuration):
         "core",
         "demo",
         "local_auth",
+        "transcription",
         "drf_spectacular",
         # Third party apps
         "corsheaders",
@@ -845,6 +846,20 @@ class Base(Configuration):
     ROOM_SUBTITLE_AGENT_NAME = values.Value(
         "multi-user-transcriber",
         environ_name="ROOM_SUBTITLE_AGENT_NAME",
+        environ_prefix=None,
+    )
+
+    # Transcription persistence settings
+    TRANSCRIPTION_ENABLED = values.BooleanValue(
+        False,
+        environ_name="TRANSCRIPTION_ENABLED",
+        environ_prefix=None,
+    )
+    # Shared bearer secret the agent worker uses on the write endpoint.
+    # Must be set when TRANSCRIPTION_ENABLED — empty = endpoint refuses all.
+    AGENT_API_KEY = values.Value(
+        None,
+        environ_name="AGENT_API_KEY",
         environ_prefix=None,
     )
 
