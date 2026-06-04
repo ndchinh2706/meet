@@ -1,5 +1,7 @@
 """Meet core API endpoints"""
 
+import os
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
@@ -62,8 +64,22 @@ def get_frontend_configuration(request):
         },
         "telephony": build_telephony_config(),
         "subtitle": {"enabled": settings.ROOM_SUBTITLE_ENABLED},
+        "mcp": {
+            "url": (
+                f"{settings.APPLICATION_BASE_URL.rstrip('/')}/api/{settings.API_VERSION}/mcp/"
+                if settings.APPLICATION_BASE_URL
+                else None
+            ),
+        },
         "livekit": {
-            "url": settings.LIVEKIT_CONFIGURATION["url"],
+            # Browser must reach LiveKit on its public address, NOT the internal
+            # docker DNS used by the backend (`LIVEKIT_API_URL`). Prefer the
+            # explicit public URL; fall back to whatever the backend uses
+            # (works fine for non-containerized deployments).
+            "url": (
+                os.getenv("LIVEKIT_PUBLIC_URL")
+                or settings.LIVEKIT_CONFIGURATION["url"]
+            ),
             "force_wss_protocol": settings.LIVEKIT_FORCE_WSS_PROTOCOL,
             "enable_firefox_proxy_workaround": settings.LIVEKIT_ENABLE_FIREFOX_PROXY_WORKAROUND,
             "default_sources": settings.LIVEKIT_DEFAULT_SOURCES,

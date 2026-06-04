@@ -342,3 +342,38 @@ class ApplicationAdmin(admin.ModelAdmin):
         return _("No scopes")
 
     get_scopes_display.short_description = _("Scopes")
+
+
+@admin.register(models.PersonalAccessToken)
+class PersonalAccessTokenAdmin(admin.ModelAdmin):
+    """Read-only admin for PATs (creation happens via API; raw token is shown once)."""
+
+    list_display = (
+        "name",
+        "user",
+        "token_prefix",
+        "last_used_at",
+        "expires_at",
+        "is_active",
+        "created_at",
+    )
+    list_filter = ("is_active",)
+    search_fields = ("name", "user__email", "user__admin_email", "token_prefix")
+    readonly_fields = (
+        "id",
+        "user",
+        "name",
+        "token_prefix",
+        "token_hash",
+        "last_used_at",
+        "expires_at",
+        "created_at",
+        "updated_at",
+    )
+    actions = ["revoke_tokens"]
+
+    def revoke_tokens(self, request, queryset):
+        n = queryset.update(is_active=False)
+        self.message_user(request, _("Revoked %(n)d token(s).") % {"n": n})
+
+    revoke_tokens.short_description = _("Revoke selected tokens")

@@ -347,6 +347,21 @@ def generate_client_secret() -> str:
     return generate_secure_token(settings.APPLICATION_CLIENT_SECRET_LENGTH)
 
 
+PAT_PREFIX = "meet_pat_"
+PAT_RANDOM_LENGTH = 40
+
+
+def generate_pat_raw() -> str:
+    """Generate a raw personal access token (shown to user once)."""
+    return PAT_PREFIX + generate_secure_token(PAT_RANDOM_LENGTH)
+
+
+def hash_pat_token(raw: str) -> str:
+    """Hash a raw PAT for indexed lookup. SHA-256 is sufficient for
+    high-entropy random tokens (no need for slow KDF like PBKDF2)."""
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
 def generate_room_slug():
     """Generate a random room slug in the format 'xxx-xxxx-xxx'."""
 

@@ -1023,3 +1023,49 @@ class File(BaseModel):
 
         self.hard_deleted_at = timezone.now()
         self.save(update_fields=["hard_deleted_at"])
+
+
+class PersonalAccessToken(BaseModel):
+    """User-scoped API token for external integrations (Thổ Thần Skill, scripts).
+
+    Token is shown to the user exactly once at creation. We store only its
+    SHA-256 hash for indexed lookup. `token_prefix` keeps the first few
+    characters in plain text so users can recognize their tokens in lists.
+    """
+
+    user = models.ForeignKey(
+        "User",
+        on_delete=models.CASCADE,
+        related_name="personal_access_tokens",
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text=_("Label for this token (e.g. 'Thổ Thần Skill')."),
+    )
+    token_hash = models.CharField(max_length=64, unique=True, db_index=True)
+    token_prefix = models.CharField(max_length=20)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "meet_personal_access_token"
+        ordering = ("-created_at",)
+        verbose_name = _("Personal Access Token")
+        verbose_name_plural = _("Personal Access Tokens")
+
+    def __str__(self):
+        return f"{self.name} ({self.token_prefix}…)"
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expires_at is not None and self.expires_at <= timezone.now()
+
+    @property
+    def is_usable(self) -> bool:
+        return self.is_active and not self.is_expired
+
+    def touch(self):
+        """Update last_used_at timestamp (called by the auth class)."""
+        self.last_used_at = timezone.now()
+        self.save(update_fields=["last_used_at"])

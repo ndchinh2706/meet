@@ -563,3 +563,52 @@ class RenameParticipantSerializer(BaseValidationOnlySerializer):
     """Serializer for renaming a participant in a room."""
 
     name = serializers.CharField(min_length=1, max_length=255, allow_blank=False)
+
+
+class PersonalAccessTokenSerializer(serializers.ModelSerializer):
+    """List/retrieve representation — never exposes the raw token."""
+
+    class Meta:
+        model = models.PersonalAccessToken
+        fields = [
+            "id",
+            "name",
+            "token_prefix",
+            "last_used_at",
+            "expires_at",
+            "is_active",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class PersonalAccessTokenCreateSerializer(serializers.ModelSerializer):
+    """Accepts an optional name; returns the raw token EXACTLY ONCE upon creation."""
+
+    token = serializers.CharField(read_only=True)
+    name = serializers.CharField(required=False, allow_blank=True, max_length=100)
+
+    class Meta:
+        model = models.PersonalAccessToken
+        fields = ["id", "name", "token", "token_prefix", "created_at"]
+        read_only_fields = ["id", "token", "token_prefix", "created_at"]
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        # Enforce 1-active-token-per-user: revoke any existing active tokens
+        # so a fresh creation always supersedes the old one.
+        models.PersonalAccessToken.objects.filter(
+            user=user, is_active=True
+        ).update(is_active=False)
+
+        raw = utils.generate_pat_raw()
+        pat = models.PersonalAccessToken.objects.create(
+            user=user,
+            name=validated_data.get("name") or "default",
+            token_hash=utils.hash_pat_token(raw),
+            token_prefix=raw[: len(utils.PAT_PREFIX) + 4],  # e.g. meet_pat_a1b2
+        )
+        # Attach the raw token to the instance so it ends up in the response.
+        # NOT stored on the model — only returned this one time.
+        pat.token = raw  # type: ignore[attr-defined]
+        return pat

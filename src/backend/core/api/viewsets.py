@@ -174,6 +174,32 @@ class Pagination(pagination.PageNumberPagination):
     page_size_query_param = "page_size"
 
 
+class PersonalAccessTokenViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """User-scoped CRUD for Personal Access Tokens.
+
+    List / create / revoke the calling user's tokens. Raw token is returned
+    exactly once on POST; never readable again — by design.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return models.PersonalAccessToken.objects.filter(
+            user=self.request.user, is_active=True
+        )
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return serializers.PersonalAccessTokenCreateSerializer
+        return serializers.PersonalAccessTokenSerializer
+
+
 class UserViewSet(
     mixins.UpdateModelMixin, viewsets.GenericViewSet, mixins.ListModelMixin
 ):
