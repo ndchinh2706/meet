@@ -9,11 +9,13 @@ from rest_framework.routers import DefaultRouter, SimpleRouter
 
 from core.addons import viewsets as addons_viewsets
 from core.api import get_frontend_configuration, viewsets
+from core.api.mcp import mcp_endpoint
 from core.external_api import viewsets as external_viewsets
 
 # - Main endpoints
 router = DefaultRouter()
 router.register("users", viewsets.UserViewSet, basename="users")
+router.register("pats", viewsets.PersonalAccessTokenViewSet, basename="pats")
 router.register("rooms", viewsets.RoomViewSet, basename="rooms")
 router.register("recordings", viewsets.RecordingViewSet, basename="recordings")
 router.register("files", viewsets.FileViewSet, basename="files")
@@ -48,6 +50,7 @@ urlpatterns = [
                 *oidc_urls,
                 *local_auth_urls,
                 path("config/", get_frontend_configuration, name="config"),
+                path("mcp/", mcp_endpoint, name="mcp"),
             ]
         ),
     ),

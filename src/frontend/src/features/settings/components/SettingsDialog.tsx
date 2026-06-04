@@ -4,6 +4,7 @@ import { A, Badge, Dialog, type DialogProps, Field, H, P } from '@/primitives'
 import { useUser } from '@/features/auth/api/useUser'
 import { LoginButton } from '@/components/LoginButton'
 import { logout } from '@/features/auth/utils/logout'
+import { IntegrationsContent } from '@/features/integrations/components/IntegrationsContent'
 
 export type SettingsDialogProps = Pick<DialogProps, 'isOpen' | 'onOpenChange'>
 
@@ -47,6 +48,7 @@ export const SettingsDialog = (props: SettingsDialogProps) => {
           i18n.changeLanguage(lang as string)
         }}
       />
+      {isLoggedIn && <IntegrationsContent />}
     </Dialog>
   )
 }

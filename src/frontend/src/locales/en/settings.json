@@ -175,6 +175,18 @@
     "notifications": "Notifications",
     "accessibility": "Accessibility",
     "transcription": "Transcription",
-    "shortcuts": "Shortcuts"
+    "shortcuts": "Shortcuts",
+    "integrations": "Tích hợp"
+  },
+  "integrations": {
+    "heading": "Integrations",
+    "loginRequired": "Login to manage API key.",
+    "createButton": "+ Create API key",
+    "creating": "Creating…",
+    "recreate": "⟳ Create new",
+    "copy": "Copy",
+    "copied": "Copied ✓",
+    "saveNow": "Save now — will not appear again.",
+    "existsHelper": "API key is in use. Creating a new one will revoke the old one."
   }
 }

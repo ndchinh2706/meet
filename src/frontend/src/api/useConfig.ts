@@ -54,6 +54,9 @@ export interface ApiConfig {
     enable_firefox_proxy_workaround: boolean
     default_sources: Source[]
   }
+  mcp?: {
+    url: string | null
+  }
   transcription_destination?: string
 }
 

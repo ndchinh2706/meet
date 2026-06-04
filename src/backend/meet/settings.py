@@ -319,6 +319,7 @@ class Base(Configuration):
 
     REST_FRAMEWORK = {
         "DEFAULT_AUTHENTICATION_CLASSES": (
+            "core.authentication.pat.PersonalAccessTokenAuthentication",
             "mozilla_django_oidc.contrib.drf.OIDCAuthentication",
             "rest_framework.authentication.SessionAuthentication",
         ),
